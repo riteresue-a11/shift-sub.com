@@ -207,10 +207,7 @@ async function handleRegister() {
         return;
     }
 
-    if (password.length !== 4) {
-        showMessage('暗証番号は4桁で入力してください', 'error');
-        return;
-    }
+    
 
     if (password !== passwordConfirm) {
         showMessage('暗証番号が一致しません', 'error');
@@ -593,10 +590,7 @@ async function changeStaffPassword() {
         return;
     }
 
-    if (newPassword.length !== 4) {
-        showMessage('新しい暗証番号は4桁で入力してください', 'error');
-        return;
-    }
+   
 
     // マスターキーまたは現在のパスワードでチェック
     if (currentPassword !== 'ktwkcrcl' && currentPassword !== currentUser.password) {
@@ -1201,10 +1195,6 @@ async function changeManagerPassword() {
         return;
     }
 
-    if (newPassword.length !== 4) {
-        showMessage('新しい暗証番号は4桁で入力してください', 'error');
-        return;
-    }
 
     if (currentPassword !== 'ktwkcrcl' && currentPassword !== currentUser.password) {
         showMessage('現在の暗証番号が正しくありません', 'error');
