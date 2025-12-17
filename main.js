@@ -1,3 +1,6 @@
+// API エンドポイント
+const API_BASE_URL = 'https://shift-sub-backend.onrender.com/api';
+
 // ========================================
 // グローバル変数
 // ========================================
@@ -121,35 +124,32 @@ async function handleLogin() {
     showLoading();
 
     try {
-        const response = await fetch('tables/accounts?limit=1000');
-        const data = await response.json();
+        const response = await fetch(`${API_BASE_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
         
-        const account = data.data.find(a => a.username === username && a.status === 'approved');
+        const data = await response.json();
 
-        if (!account) {
+        if (!data.success) {
             hideLoading();
-            showMessage('アカウントが見つからないか、承認待ちです', 'error');
-            return;
-        }
-
-        if (account.password !== password) {
-            hideLoading();
-            showMessage('暗証番号が正しくありません', 'error');
+            showMessage('ログインに失敗しました', 'error');
             return;
         }
 
         // ログイン成功
-        currentUser = account;
-        document.getElementById('current-user').textContent = `${account.username}さん`;
+        currentUser = data.user;
+        document.getElementById('current-user').textContent = `${currentUser.username}さん`;
         
-        if (account.account_type === 'manager') {
+        if (currentUser.account_type === 'manager') {
             await initializeManagerApp();
         } else {
             await initializeStaffApp();
         }
 
         showScreen('main-app');
-        showMessage(`ようこそ、${account.username}さん`, 'success');
+        showMessage(`ようこそ、${currentUser.username}さん`, 'success');
         
         // 入力欄クリア
         document.getElementById('login-username').value = '';
@@ -189,30 +189,23 @@ async function handleRegister() {
     showLoading();
 
     try {
-        // 既存アカウントチェック
-        const response = await fetch('tables/accounts?limit=1000');
-        const data = await response.json();
-        
-        const exists = data.data.find(a => a.username === username && a.status !== 'deleted');
-        if (exists) {
-            hideLoading();
-            showMessage('この名前は既に登録されています', 'error');
-            return;
-        }
-
-        // アカウント作成
-        await fetch('tables/accounts', {
+        const response = await fetch(`${API_BASE_URL}/accounts`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 username: username,
                 password: password,
-                account_type: 'staff',
-                status: 'pending',
-                created_at: new Date().toISOString(),
-                approved_at: ''
+                account_type: 'staff'
             })
         });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            hideLoading();
+            showMessage('登録に失敗しました', 'error');
+            return;
+        }
 
         showMessage('登録申請を送信しました。社員の承認をお待ちください。', 'success');
         
@@ -366,18 +359,18 @@ function initializeTabs(type) {
 // ========================================
 async function loadPeriods() {
     try {
-        const response = await fetch('tables/shift_periods?limit=100');
+        const response = await fetch(`${API_BASE_URL}/shift_periods`);
         const data = await response.json();
         
-        collectingPeriod = data.data.find(p => p.status === 'collecting');
-        confirmedPeriod = data.data.find(p => p.status === 'confirmed');
+        collectingPeriod = data.find(p => p.status === 'collecting');
+        confirmedPeriod = data.find(p => p.status === 'confirmed');
     } catch (error) {
         console.error('期間読み込みエラー:', error);
     }
 }
 
 // ========================================
-// アルバイト：確定シフト閲覧
+// アルバイト:確定シフト閲覧
 // ========================================
 async function loadStaffConfirmedShift() {
     const container = document.getElementById('staff-confirmed-shift');
@@ -391,10 +384,10 @@ async function loadStaffConfirmedShift() {
     showLoading();
 
     try {
-        const response = await fetch('tables/shifts?limit=1000');
+        const response = await fetch(`${API_BASE_URL}/shifts`);
         const data = await response.json();
         
-        let shifts = data.data.filter(s => s.period_id === confirmedPeriod.id);
+        let shifts = data.filter(s => s.period_id === confirmedPeriod.id);
         
         if (mode === 'mine') {
             shifts = shifts.filter(s => s.staff_name === currentUser.username);
@@ -409,7 +402,7 @@ async function loadStaffConfirmedShift() {
 }
 
 // ========================================
-// アルバイト：シフト提出
+// アルバイト:シフト提出
 // ========================================
 async function loadStaffSubmitShift() {
     if (!collectingPeriod) {
@@ -420,23 +413,17 @@ async function loadStaffSubmitShift() {
     document.getElementById('submit-period-title').textContent = collectingPeriod.display_name;
 
     // 既存のシフトを確認
-    const response = await fetch('tables/shifts?limit=1000');
+    const response = await fetch(`${API_BASE_URL}/shifts`);
     const data = await response.json();
     
-    const existingShifts = data.data.filter(s => 
+    const existingShifts = data.filter(s => 
         s.period_id === collectingPeriod.id && s.staff_name === currentUser.username
     );
 
     const statusBox = document.getElementById('submission-status');
     if (existingShifts.length > 0) {
-        // 最終更新日時を取得
-        const latestShift = existingShifts.sort((a, b) => 
-            new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
-        )[0];
-        const updateTime = formatDateTime(latestShift.updated_at || latestShift.created_at);
-        
         statusBox.className = 'status-box status-submitted';
-        statusBox.textContent = `✅ 提出済み（最終更新: ${updateTime}）`;
+        statusBox.textContent = `✅ 提出済み`;
     } else {
         statusBox.className = 'status-box status-not-submitted';
         statusBox.textContent = '❌ 未提出';
@@ -503,7 +490,6 @@ function createDayElement(date, existingShiftType = '') {
 
     return dayDiv;
 }
-
 async function submitStaffShift() {
     const selects = document.querySelectorAll('.shift-select');
     const shifts = [];
@@ -528,18 +514,18 @@ async function submitStaffShift() {
 
     try {
         // 既存のシフトを削除
-        const existingResponse = await fetch('tables/shifts?limit=1000');
+        const existingResponse = await fetch(`${API_BASE_URL}/shifts`);
         const existingData = await existingResponse.json();
         
-        for (const shift of existingData.data) {
+        for (const shift of existingData) {
             if (shift.staff_name === currentUser.username && shift.period_id === collectingPeriod.id) {
-                await fetch(`tables/shifts/${shift.id}`, { method: 'DELETE' });
+                await fetch(`${API_BASE_URL}/shifts/${shift.id}`, { method: 'DELETE' });
             }
         }
 
         // 新しいシフトを保存
         for (const shift of shifts) {
-            await fetch('tables/shifts', {
+            await fetch(`${API_BASE_URL}/shifts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(shift)
@@ -565,7 +551,7 @@ function clearStaffShift() {
 }
 
 // ========================================
-// アルバイト：パスワード変更
+// アルバイト:パスワード変更
 // ========================================
 async function changeStaffPassword() {
     const currentPassword = document.getElementById('staff-current-password').value;
@@ -590,8 +576,8 @@ async function changeStaffPassword() {
     showLoading();
 
     try {
-        await fetch(`tables/accounts/${currentUser.id}`, {
-            method: 'PATCH',
+        await fetch(`${API_BASE_URL}/accounts/${currentUser.id}`, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: newPassword })
         });
@@ -611,18 +597,18 @@ async function changeStaffPassword() {
 }
 
 // ========================================
-// 社員：シフト管理
+// 社員:シフト管理
 // ========================================
 async function loadManagerShifts() {
     showLoading();
 
     try {
-        const response = await fetch('tables/shifts?limit=1000');
+        const response = await fetch(`${API_BASE_URL}/shifts`);
         const data = await response.json();
 
         // 確定版
         if (confirmedPeriod) {
-            const confirmedShifts = data.data.filter(s => s.period_id === confirmedPeriod.id);
+            const confirmedShifts = data.filter(s => s.period_id === confirmedPeriod.id);
             renderShiftTable(
                 document.getElementById('manager-confirmed-shift'),
                 confirmedPeriod,
@@ -634,7 +620,7 @@ async function loadManagerShifts() {
 
         // 収集中
         if (collectingPeriod) {
-            const collectingShifts = data.data.filter(s => s.period_id === collectingPeriod.id);
+            const collectingShifts = data.filter(s => s.period_id === collectingPeriod.id);
             renderShiftTable(
                 document.getElementById('manager-collecting-shift'),
                 collectingPeriod,
@@ -724,7 +710,7 @@ function renderShiftTable(container, period, shifts, editable, deletable) {
 }
 
 // ========================================
-// 社員：提出状況表示
+// 社員:提出状況表示
 // ========================================
 async function loadSubmissionStats() {
     const container = document.getElementById('submission-stats');
@@ -738,16 +724,16 @@ async function loadSubmissionStats() {
 
     try {
         // 全アカウント取得
-        const accountsResponse = await fetch('tables/accounts?limit=1000');
+        const accountsResponse = await fetch(`${API_BASE_URL}/accounts`);
         const accountsData = await accountsResponse.json();
-        const staffAccounts = accountsData.data.filter(a => 
+        const staffAccounts = accountsData.filter(a => 
             a.account_type === 'staff' && a.status === 'approved'
         );
 
         // 提出済みシフト取得
-        const shiftsResponse = await fetch('tables/shifts?limit=1000');
+        const shiftsResponse = await fetch(`${API_BASE_URL}/shifts`);
         const shiftsData = await shiftsResponse.json();
-        const submittedShifts = shiftsData.data.filter(s => s.period_id === collectingPeriod.id);
+        const submittedShifts = shiftsData.filter(s => s.period_id === collectingPeriod.id);
         
         // 提出済みスタッフ名を取得
         const submittedStaff = [...new Set(submittedShifts.map(s => s.staff_name))];
@@ -756,15 +742,6 @@ async function loadSubmissionStats() {
         const notSubmittedStaff = staffAccounts.filter(a => 
             !submittedStaff.includes(a.username)
         );
-
-        // 最終更新日時マップ作成
-        const lastUpdateMap = {};
-        submittedShifts.forEach(shift => {
-            const updateTime = new Date(shift.updated_at || shift.created_at);
-            if (!lastUpdateMap[shift.staff_name] || updateTime > lastUpdateMap[shift.staff_name]) {
-                lastUpdateMap[shift.staff_name] = updateTime;
-            }
-        });
 
         let html = '<div class="submission-stat">';
         
@@ -775,8 +752,7 @@ async function loadSubmissionStats() {
         if (submittedStaff.length > 0) {
             html += '<div class="staff-list">';
             submittedStaff.forEach(name => {
-                const updateTime = lastUpdateMap[name] ? formatDateTime(lastUpdateMap[name]) : '不明';
-                html += `<div class="staff-list-item">✅ ${name}<br><small>最終更新: ${updateTime}</small></div>`;
+                html += `<div class="staff-list-item">✅ ${name}</div>`;
             });
             html += '</div>';
         }
@@ -806,7 +782,7 @@ async function loadSubmissionStats() {
 }
 
 // ========================================
-// 社員：シフト公開
+// 社員:シフト公開
 // ========================================
 async function publishShift() {
     if (!confirm('収集中のシフトを確定版として公開しますか？')) {
@@ -818,16 +794,16 @@ async function publishShift() {
     try {
         // 現在の確定版をアーカイブ
         if (confirmedPeriod) {
-            await fetch(`tables/shift_periods/${confirmedPeriod.id}`, {
-                method: 'PATCH',
+            await fetch(`${API_BASE_URL}/shift_periods/${confirmedPeriod.id}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'archived' })
             });
         }
 
         // 収集中を確定版に
-        await fetch(`tables/shift_periods/${collectingPeriod.id}`, {
-            method: 'PATCH',
+        await fetch(`${API_BASE_URL}/shift_periods/${collectingPeriod.id}`, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'confirmed' })
         });
@@ -839,10 +815,13 @@ async function publishShift() {
         nextEnd.setMonth(nextEnd.getMonth() + 1);
         nextEnd.setDate(15);
 
-        await fetch('tables/shift_periods', {
+        const { v4: uuidv4 } = await import('https://cdn.skypack.dev/uuid');
+        
+        await fetch(`${API_BASE_URL}/shift_periods`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                id: uuidv4(),
                 start_date: formatDateJST(nextStart),
                 end_date: formatDateJST(nextEnd),
                 status: 'collecting',
@@ -864,7 +843,7 @@ async function publishShift() {
 }
 
 // ========================================
-// 社員：確定撤回（シフトデータ保持）
+// 社員:確定撤回(シフトデータ保持)
 // ========================================
 async function revertShift() {
     if (!confirm('確定を撤回しますか？1つ前の状態に戻ります。提出済みシフトは保持されます。')) {
@@ -874,12 +853,12 @@ async function revertShift() {
     showLoading();
 
     try {
-        const response = await fetch('tables/shift_periods?limit=100');
+        const response = await fetch(`${API_BASE_URL}/shift_periods`);
         const data = await response.json();
         
-        const currentConfirmed = data.data.find(p => p.status === 'confirmed');
-        const currentCollecting = data.data.find(p => p.status === 'collecting');
-        const archived = data.data.filter(p => p.status === 'archived').sort((a, b) => 
+        const currentConfirmed = data.find(p => p.status === 'confirmed');
+        const currentCollecting = data.find(p => p.status === 'collecting');
+        const archived = data.filter(p => p.status === 'archived').sort((a, b) => 
             new Date(b.start_date) - new Date(a.start_date)
         )[0];
 
@@ -890,19 +869,19 @@ async function revertShift() {
         }
 
         // 収集中を削除
-        await fetch(`tables/shift_periods/${currentCollecting.id}`, { method: 'DELETE' });
+        await fetch(`${API_BASE_URL}/shift_periods/${currentCollecting.id}`, { method: 'DELETE' });
 
         // 確定版を収集中に戻す
-        await fetch(`tables/shift_periods/${currentConfirmed.id}`, {
-            method: 'PATCH',
+        await fetch(`${API_BASE_URL}/shift_periods/${currentConfirmed.id}`, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'collecting' })
         });
 
         // アーカイブを確定版に戻す
         if (archived) {
-            await fetch(`tables/shift_periods/${archived.id}`, {
-                method: 'PATCH',
+            await fetch(`${API_BASE_URL}/shift_periods/${archived.id}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'confirmed' })
             });
@@ -932,13 +911,13 @@ async function deleteShiftsByStaff(staffName, periodId) {
     showLoading();
 
     try {
-        const response = await fetch('tables/shifts?limit=1000');
+        const response = await fetch(`${API_BASE_URL}/shifts`);
         const data = await response.json();
         
         let deletedCount = 0;
-        for (const shift of data.data) {
+        for (const shift of data) {
             if (shift.staff_name === staffName && shift.period_id === periodId) {
-                await fetch(`tables/shifts/${shift.id}`, { method: 'DELETE' });
+                await fetch(`${API_BASE_URL}/shifts/${shift.id}`, { method: 'DELETE' });
                 deletedCount++;
             }
         }
@@ -962,13 +941,13 @@ async function deleteShiftsByDate(date, periodId) {
     showLoading();
 
     try {
-        const response = await fetch('tables/shifts?limit=1000');
+        const response = await fetch(`${API_BASE_URL}/shifts`);
         const data = await response.json();
         
         let deletedCount = 0;
-        for (const shift of data.data) {
+        for (const shift of data) {
             if (shift.date === date && shift.period_id === periodId) {
-                await fetch(`tables/shifts/${shift.id}`, { method: 'DELETE' });
+                await fetch(`${API_BASE_URL}/shifts/${shift.id}`, { method: 'DELETE' });
                 deletedCount++;
             }
         }
@@ -992,12 +971,12 @@ async function deleteShiftCell(staffName, date, periodId) {
     showLoading();
 
     try {
-        const response = await fetch('tables/shifts?limit=1000');
+        const response = await fetch(`${API_BASE_URL}/shifts`);
         const data = await response.json();
         
-        for (const shift of data.data) {
+        for (const shift of data) {
             if (shift.staff_name === staffName && shift.date === date && shift.period_id === periodId) {
-                await fetch(`tables/shifts/${shift.id}`, { method: 'DELETE' });
+                await fetch(`${API_BASE_URL}/shifts/${shift.id}`, { method: 'DELETE' });
                 showMessage(`${staffName}さんの${date}のシフトを削除しました`, 'success');
                 await loadManagerShifts();
                 await loadSubmissionStats();
@@ -1016,17 +995,17 @@ async function deleteShiftCell(staffName, date, periodId) {
 }
 
 // ========================================
-// 社員：アカウント管理
+// 社員:アカウント管理
 // ========================================
 async function loadAccountManagement() {
     showLoading();
 
     try {
-        const response = await fetch('tables/accounts?limit=1000');
+        const response = await fetch(`${API_BASE_URL}/accounts`);
         const data = await response.json();
         
-        const pending = data.data.filter(a => a.status === 'pending');
-        const approved = data.data.filter(a => a.status === 'approved' && a.account_type === 'staff');
+        const pending = data.filter(a => a.status === 'pending');
+        const approved = data.filter(a => a.status === 'approved' && a.account_type === 'staff');
 
         // 承認待ち
         const pendingContainer = document.getElementById('pending-list');
@@ -1085,8 +1064,8 @@ async function approveAccount(accountId) {
     showLoading();
 
     try {
-        await fetch(`tables/accounts/${accountId}`, {
-            method: 'PATCH',
+        await fetch(`${API_BASE_URL}/accounts/${accountId}`, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 status: 'approved',
@@ -1112,7 +1091,7 @@ async function rejectAccount(accountId) {
     showLoading();
 
     try {
-        await fetch(`tables/accounts/${accountId}`, { method: 'DELETE' });
+        await fetch(`${API_BASE_URL}/accounts/${accountId}`, { method: 'DELETE' });
         showMessage('アカウントを拒否しました', 'info');
         await loadAccountManagement();
     } catch (error) {
@@ -1131,8 +1110,8 @@ async function resetPassword(accountId, username) {
     showLoading();
 
     try {
-        await fetch(`tables/accounts/${accountId}`, {
-            method: 'PATCH',
+        await fetch(`${API_BASE_URL}/accounts/${accountId}`, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: '1111' })
         });
@@ -1155,15 +1134,15 @@ async function deleteAccount(accountId, username) {
 
     try {
         // アカウント削除
-        await fetch(`tables/accounts/${accountId}`, { method: 'DELETE' });
+        await fetch(`${API_BASE_URL}/accounts/${accountId}`, { method: 'DELETE' });
 
         // シフトデータ削除
-        const response = await fetch('tables/shifts?limit=1000');
+        const response = await fetch(`${API_BASE_URL}/shifts`);
         const data = await response.json();
         
-        for (const shift of data.data) {
+        for (const shift of data) {
             if (shift.staff_name === username) {
-                await fetch(`tables/shifts/${shift.id}`, { method: 'DELETE' });
+                await fetch(`${API_BASE_URL}/shifts/${shift.id}`, { method: 'DELETE' });
             }
         }
 
@@ -1180,7 +1159,7 @@ async function deleteAccount(accountId, username) {
 }
 
 // ========================================
-// 社員：パスワード変更
+// 社員:パスワード変更
 // ========================================
 async function changeManagerPassword() {
     const currentPassword = document.getElementById('manager-current-password').value;
@@ -1204,8 +1183,8 @@ async function changeManagerPassword() {
     showLoading();
 
     try {
-        await fetch(`tables/accounts/${currentUser.id}`, {
-            method: 'PATCH',
+        await fetch(`${API_BASE_URL}/accounts/${currentUser.id}`, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: newPassword })
         });
@@ -1238,9 +1217,9 @@ async function downloadExcel(type) {
     showLoading();
 
     try {
-        const response = await fetch('tables/shifts?limit=1000');
+        const response = await fetch(`${API_BASE_URL}/shifts`);
         const data = await response.json();
-        const shifts = data.data.filter(s => s.period_id === period.id);
+        const shifts = data.filter(s => s.period_id === period.id);
 
         const startDate = parseJSTDate(period.start_date);
         const endDate = parseJSTDate(period.end_date);
@@ -1293,9 +1272,9 @@ async function downloadPDF(type) {
     showLoading();
 
     try {
-        const response = await fetch('tables/shifts?limit=1000');
+        const response = await fetch(`${API_BASE_URL}/shifts`);
         const data = await response.json();
-        const shifts = data.data.filter(s => s.period_id === period.id);
+        const shifts = data.filter(s => s.period_id === period.id);
 
         const startDate = parseJSTDate(period.start_date);
         const endDate = parseJSTDate(period.end_date);
