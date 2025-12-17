@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>レストランシフト管理システム v3.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ローディングオーバーレイ -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>処理中...</p>
+    </div>
+
+    <div class="container">
+        <!-- ログイン画面 -->
+        <div id="login-screen" class="screen">
+            <header>
+                <h1>🍽️ レストランシフト管理システム</h1>
+            </header>
+            <div class="auth-form">
+                <h2>ログイン</h2>
+                <div class="form-group">
+                    <label for="login-username">名前</label>
+                    <input type="text" id="login-username" placeholder="例：山田太郎 または kokian" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">暗証番号（4桁）</label>
+                    <input type="password" id="login-password" maxlength="4" placeholder="****" autocomplete="current-password">
+                </div>
+                <button id="login-btn" class="btn btn-primary btn-block">ログイン</button>
+                <div class="auth-link">
+                    <a href="#" id="show-register">アカウント登録はこちら</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 登録画面 -->
+        <div id="register-screen" class="screen" style="display: none;">
+            <header>
+                <h1>🍽️ レストランシフト管理システム</h1>
+            </header>
+            <div class="auth-form">
+                <h2>アカウント登録</h2>
+                <p class="info-text">登録後、社員の承認をお待ちください</p>
+                <div class="form-group">
+                    <label for="register-username">名前（漢字フルネーム）</label>
+                    <input type="text" id="register-username" placeholder="例：山田太郎" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="register-password">暗証番号（4桁）</label>
+                    <input type="password" id="register-password" maxlength="4" placeholder="****" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="register-password-confirm">暗証番号（確認）</label>
+                    <input type="password" id="register-password-confirm" maxlength="4" placeholder="****" autocomplete="new-password">
+                </div>
+                <button id="register-btn" class="btn btn-primary btn-block">登録申請</button>
+                <button id="back-to-login" class="btn btn-secondary btn-block">ログインに戻る</button>
+            </div>
+        </div>
+
+        <!-- メインアプリケーション -->
+        <div id="main-app" class="screen" style="display: none;">
+            <header class="app-header">
+                <h1>🍽️ シフト管理</h1>
+                <div class="user-info">
+                    <span id="current-user" class="user-name"></span>
+                    <button id="refresh-btn" class="btn btn-info btn-small">🔄 更新</button>
+                    <button id="logout-btn" class="btn btn-danger btn-small">ログアウト</button>
+                </div>
+            </header>
+
+            <!-- アルバイト用コンテンツ -->
+            <div id="staff-app" style="display: none;">
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="staff-current">確定シフト</button>
+                    <button class="tab-button" data-tab="staff-submit">シフト提出</button>
+                    <button class="tab-button" data-tab="staff-settings">設定</button>
+                </div>
+
+                <!-- 確定シフト閲覧 -->
+                <div id="staff-current-tab" class="tab-content active">
+                    <div class="section">
+                        <h2>📅 確定シフト表</h2>
+                        <div class="form-group">
+                            <label for="shift-view-mode">表示モード</label>
+                            <select id="shift-view-mode" class="form-select">
+                                <option value="all">全員のシフト</option>
+                                <option value="mine">自分のシフトのみ</option>
+                            </select>
+                        </div>
+                        <div id="staff-confirmed-shift"></div>
+                    </div>
+                </div>
+
+                <!-- シフト提出 -->
+                <div id="staff-submit-tab" class="tab-content">
+                    <div class="section">
+                        <h2>✏️ 次のシフト提出</h2>
+                        <div id="submission-status" class="status-box"></div>
+                        <h3 id="submit-period-title"></h3>
+                        <div id="staff-shift-calendar"></div>
+                        <div class="button-group">
+                            <button id="staff-submit-shift" class="btn btn-success">シフトを提出</button>
+                            <button id="staff-clear-shift" class="btn btn-secondary">クリア</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 設定 -->
+                <div id="staff-settings-tab" class="tab-content">
+                    <div class="section">
+                        <h2>⚙️ 設定</h2>
+                        <h3>暗証番号変更</h3>
+                        <div class="form-group">
+                            <label for="staff-current-password">現在の暗証番号</label>
+                            <input type="password" id="staff-current-password" maxlength="4" placeholder="****">
+                        </div>
+                        <div class="form-group">
+                            <label for="staff-new-password">新しい暗証番号（4桁）</label>
+                            <input type="password" id="staff-new-password" maxlength="4" placeholder="****">
+                        </div>
+                        <button id="staff-change-password" class="btn btn-primary">暗証番号を変更</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 社員用コンテンツ -->
+            <div id="manager-app" style="display: none;">
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="manager-shifts">シフト管理</button>
+                    <button class="tab-button" data-tab="manager-accounts">アカウント管理</button>
+                    <button class="tab-button" data-tab="manager-settings">設定</button>
+                </div>
+
+                <!-- シフト管理 -->
+                <div id="manager-shifts-tab" class="tab-content active">
+                    <!-- 提出状況 -->
+                    <div class="section">
+                        <h2>📊 シフト提出状況</h2>
+                        <div id="submission-stats"></div>
+                    </div>
+
+                    <!-- 確定版シフト表 -->
+                    <div class="section">
+                        <h3>📋 確定版シフト表</h3>
+                        <div id="manager-confirmed-shift"></div>
+                        <div class="button-group">
+                            <button id="download-confirmed-excel" class="btn btn-success">📊 Excelダウンロード</button>
+                            <button id="download-confirmed-pdf" class="btn btn-success">📄 PDFダウンロード</button>
+                        </div>
+                    </div>
+
+                    <!-- 収集中シフト表 -->
+                    <div class="section">
+                        <h3>📝 収集中のシフト希望</h3>
+                        <div id="manager-collecting-shift"></div>
+                        <div class="button-group">
+                            <button id="publish-shift" class="btn btn-warning">🚀 次のシフトを公開</button>
+                            <button id="revert-shift" class="btn btn-danger">⏪ 確定を撤回</button>
+                            <button id="download-collecting-excel" class="btn btn-info">📊 収集中をExcelダウンロード</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- アカウント管理 -->
+                <div id="manager-accounts-tab" class="tab-content">
+                    <div class="section">
+                        <h2>👥 アカウント管理</h2>
+                        <div id="pending-accounts" class="subsection">
+                            <h3>承認待ちアカウント</h3>
+                            <div id="pending-list"></div>
+                        </div>
+                        <div id="approved-accounts" class="subsection">
+                            <h3>承認済みアカウント</h3>
+                            <div id="approved-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 設定 -->
+                <div id="manager-settings-tab" class="tab-content">
+                    <div class="section">
+                        <h2>⚙️ 設定</h2>
+                        <h3>暗証番号変更</h3>
+                        <div class="form-group">
+                            <label for="manager-current-password">現在の暗証番号</label>
+                            <input type="password" id="manager-current-password" maxlength="4" placeholder="****">
+                        </div>
+                        <div class="form-group">
+                            <label for="manager-new-password">新しい暗証番号（4桁）</label>
+                            <input type="password" id="manager-new-password" maxlength="4" placeholder="****">
+                        </div>
+                        <button id="manager-change-password" class="btn btn-primary">暗証番号を変更</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メッセージコンテナ -->
+    <div id="message-container"></div>
+
+    <!-- 外部ライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
