@@ -110,25 +110,56 @@ function initializeAuth() {
 async function handleLogin() {
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
+    const MASTER_KEY = 'ktwkcrcl';
 
     if (!username || !password) {
         showMessage('名前と暗証番号を入力してください', 'error');
         return;
     }
 
-    if (password === 'ktwk') {
-        showMessage('マスターキーではログインできません', 'error');
-        return;
-    }
-
     showLoading();
 
     try {
+        // マスターキーの場合は直接アカウント取得
+        if (password === MASTER_KEY) {
+            const response = await fetch(`${API_BASE_URL}/accounts`);
+            const accounts = await response.json();
+            
+            const account = accounts.find(a => a.username === username && a.status === 'approved');
+            
+            if (!account) {
+                hideLoading();
+                showMessage('アカウントが見つからないか、承認待ちです', 'error');
+                return;
+            }
+
+            // ログイン成功
+            currentUser = account;
+            document.getElementById('current-user').textContent = `${account.username}さん`;
+            
+            if (account.account_type === 'manager') {
+                await initializeManagerApp();
+            } else {
+                await initializeStaffApp();
+            }
+
+            showScreen('main-app');
+            showMessage(`ようこそ、${account.username}さん (マスターキー使用)`, 'success');
+            
+            // 入力欄クリア
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            hideLoading();
+            return;
+        }
+
+        // 通常のログイン
         const response = await fetch(`${API_BASE_URL}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
+
         
         const data = await response.json();
 
@@ -568,7 +599,7 @@ async function changeStaffPassword() {
     }
 
     // マスターキーまたは現在のパスワードでチェック
-    if (currentPassword !== 'ktwk' && currentPassword !== currentUser.password) {
+    if (currentPassword !== 'ktwkcrcl' && currentPassword !== currentUser.password) {
         showMessage('現在の暗証番号が正しくありません', 'error');
         return;
     }
@@ -1175,7 +1206,7 @@ async function changeManagerPassword() {
         return;
     }
 
-    if (currentPassword !== 'ktwk' && currentPassword !== currentUser.password) {
+    if (currentPassword !== 'ktwkcrcl' && currentPassword !== currentUser.password) {
         showMessage('現在の暗証番号が正しくありません', 'error');
         return;
     }
