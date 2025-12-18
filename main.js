@@ -817,15 +817,22 @@ async function confirmAddShift() {
         return;
     }
     
+    // ★ closeAddShiftModal()する前にデータを保存
+    const savedData = {
+        staffName: addShiftData.staffName,
+        date: addShiftData.date,
+        periodId: addShiftData.periodId
+    };
+    
     showLoading();
     closeAddShiftModal();
     
     try {
         const shift = {
             id: generateUUID(),
-            period_id: addShiftData.periodId,
-            staff_name: addShiftData.staffName,
-            date: addShiftData.date,
+            period_id: savedData.periodId,
+            staff_name: savedData.staffName,
+            date: savedData.date,
             shift_type: shiftType
         };
         
