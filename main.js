@@ -17,6 +17,13 @@ let currentUser = null;
 let collectingPeriod = null;
 let confirmedPeriod = null;
 
+// シフト追加用の一時データ（NEW!）
+let addShiftData = {
+    staffName: '',
+    date: '',
+    periodId: ''
+};
+
 // ========================================
 // 日本時間ユーティリティ
 // ========================================
@@ -641,7 +648,7 @@ async function loadManagerShifts() {
         const response = await fetch(`${API_BASE_URL}/shifts`);
         const data = await response.json();
 
-        // 確定版
+        // 確定版（★ deletable: true, addable: true を追加）
         if (confirmedPeriod) {
             const confirmedShifts = data.filter(s => s.period_id === confirmedPeriod.id);
             renderShiftTable(
@@ -649,11 +656,12 @@ async function loadManagerShifts() {
                 confirmedPeriod,
                 confirmedShifts,
                 false,
-                false
+                true,  // ★ deletable: true
+                true   // ★ addable: true
             );
         }
 
-        // 収集中
+        // 収集中（★ addable: true を追加）
         if (collectingPeriod) {
             const collectingShifts = data.filter(s => s.period_id === collectingPeriod.id);
             renderShiftTable(
@@ -661,7 +669,8 @@ async function loadManagerShifts() {
                 collectingPeriod,
                 collectingShifts,
                 false,
-                true
+                true,
+                true  // ★ addable: true
             );
         }
 
@@ -673,9 +682,9 @@ async function loadManagerShifts() {
 }
 
 // ========================================
-// シフト表描画
+// シフト表描画（★ addable パラメータ追加）
 // ========================================
-function renderShiftTable(container, period, shifts, editable, deletable) {
+function renderShiftTable(container, period, shifts, editable, deletable, addable = false) {
     if (!period) {
         container.innerHTML = '<p>シフトデータがありません</p>';
         return;
@@ -728,6 +737,9 @@ function renderShiftTable(container, period, shifts, editable, deletable) {
             
             if (deletable && shiftType) {
                 html += `<td class="${className} deletable-cell" onclick="deleteShiftCell('${staffName}', '${date}', '${period.id}')">${shiftType} <span class="cell-delete-icon">🗑️</span></td>`;
+            } else if (addable && !shiftType) {
+                // ★ 空のセルをクリックで追加できるように
+                html += `<td class="${className} addable-cell" onclick="openAddShiftModal('${staffName}', '${date}', '${period.id}')">➕</td>`;
             } else {
                 html += `<td class="${className}">${shiftType}</td>`;
             }
@@ -742,6 +754,64 @@ function renderShiftTable(container, period, shifts, editable, deletable) {
 
     html += '</tbody></table></div>';
     container.innerHTML = html;
+}
+
+// ========================================
+// シフト追加モーダル（NEW!）
+// ========================================
+function openAddShiftModal(staffName, date, periodId) {
+    addShiftData = { staffName, date, periodId };
+    
+    const modal = document.getElementById('add-shift-modal');
+    const info = document.getElementById('add-shift-info');
+    const select = document.getElementById('add-shift-type');
+    
+    info.textContent = `${staffName}さん - ${date}`;
+    select.value = '';
+    
+    modal.style.display = 'flex';
+}
+
+function closeAddShiftModal() {
+    document.getElementById('add-shift-modal').style.display = 'none';
+    addShiftData = { staffName: '', date: '', periodId: '' };
+}
+
+async function confirmAddShift() {
+    const shiftType = document.getElementById('add-shift-type').value;
+    
+    if (!shiftType) {
+        showMessage('シフト種類を選択してください', 'error');
+        return;
+    }
+    
+    showLoading();
+    closeAddShiftModal();
+    
+    try {
+        const shift = {
+            id: generateUUID(),
+            period_id: addShiftData.periodId,
+            staff_name: addShiftData.staffName,
+            date: addShiftData.date,
+            shift_type: shiftType
+        };
+        
+        await fetch(`${API_BASE_URL}/shifts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(shift)
+        });
+        
+        showMessage('シフトを追加しました', 'success');
+        await loadManagerShifts();
+        await loadSubmissionStats();
+    } catch (error) {
+        console.error('追加エラー:', error);
+        showMessage('追加に失敗しました', 'error');
+    } finally {
+        hideLoading();
+    }
 }
 
 // ========================================
