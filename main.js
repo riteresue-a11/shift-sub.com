@@ -437,7 +437,7 @@ async function loadStaffConfirmedShift() {
             shifts = shifts.filter(s => s.staff_name === currentUser.username);
         }
 
-        renderShiftTable(container, confirmedPeriod, shifts, false, false);
+        await renderShiftTable(container, confirmedPeriod, shifts, false, false);
     } catch (error) {
         console.error('シフト読み込みエラー:', error);
     } finally {
@@ -651,7 +651,7 @@ async function loadManagerShifts() {
         // 確定版（★ deletable: true, addable: true を追加）
         if (confirmedPeriod) {
             const confirmedShifts = data.filter(s => s.period_id === confirmedPeriod.id);
-            renderShiftTable(
+            await renderShiftTable(
                 document.getElementById('manager-confirmed-shift'),
                 confirmedPeriod,
                 confirmedShifts,
@@ -664,7 +664,7 @@ async function loadManagerShifts() {
         // 収集中（★ addable: true を追加）
         if (collectingPeriod) {
             const collectingShifts = data.filter(s => s.period_id === collectingPeriod.id);
-            renderShiftTable(
+            await renderShiftTable(
                 document.getElementById('manager-collecting-shift'),
                 collectingPeriod,
                 collectingShifts,
@@ -684,7 +684,7 @@ async function loadManagerShifts() {
 // ========================================
 // シフト表描画（★ addable パラメータ追加）
 // ========================================
-function renderShiftTable(container, period, shifts, editable, deletable, addable = false) {
+async function renderShiftTable(container, period, shifts, editable, deletable, addable = false) {
     if (!period) {
         container.innerHTML = '<p>シフトデータがありません</p>';
         return;
@@ -700,6 +700,26 @@ function renderShiftTable(container, period, shifts, editable, deletable, addabl
         }
         shiftsByStaff[shift.staff_name][shift.date] = shift.shift_type;
     });
+    
+    // ★ addableがtrueの場合、全スタッフを表示する
+    if (addable) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/accounts`);
+            const accounts = await response.json();
+            const approvedStaff = accounts.filter(a => 
+                a.account_type === 'staff' && a.status === 'approved'
+            );
+            
+            // シフトがないスタッフも追加
+            approvedStaff.forEach(staff => {
+                if (!shiftsByStaff[staff.username]) {
+                    shiftsByStaff[staff.username] = {};
+                }
+            });
+        } catch (error) {
+            console.error('スタッフ情報取得エラー:', error);
+        }
+    }
 
     let html = '<div class="shift-table"><table>';
     html += '<thead><tr><th>スタッフ名</th>';
