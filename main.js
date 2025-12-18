@@ -1,6 +1,15 @@
 // API エンドポイント
 const API_BASE_URL = 'https://shift-sub-backend.onrender.com/api';
 
+// UUID生成関数
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
 // ========================================
 // グローバル変数
 // ========================================
@@ -525,11 +534,12 @@ async function submitStaffShift() {
     selects.forEach(select => {
         if (select.value) {
             shifts.push({
-                period_id: collectingPeriod.id,
-                staff_name: currentUser.username,
-                date: select.dataset.date,
-                shift_type: select.value
-            });
+    id: generateUUID(), // ← これを追加
+    period_id: collectingPeriod.id,
+    staff_name: currentUser.username,
+    date: select.dataset.date,
+    shift_type: select.value
+          });
         }
     });
 
