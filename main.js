@@ -685,6 +685,8 @@ async function loadManagerShifts() {
 // シフト表描画（★ addable パラメータ追加）
 // ========================================
 async function renderShiftTable(container, period, shifts, editable, deletable, addable = false) {
+    console.log('🎨 renderShiftTable呼び出し:', {period: period?.id, shiftsCount: shifts.length, editable, deletable, addable});
+    
     if (!period) {
         container.innerHTML = '<p>シフトデータがありません</p>';
         return;
@@ -703,17 +705,22 @@ async function renderShiftTable(container, period, shifts, editable, deletable, 
     
     // ★ addableがtrueの場合、全スタッフを表示する
     if (addable) {
+        console.log('✅ addable=true: 全スタッフ取得開始');
         try {
             const response = await fetch(`${API_BASE_URL}/accounts`);
             const accounts = await response.json();
+            console.log('📋 取得したアカウント数:', accounts.length);
             const approvedStaff = accounts.filter(a => 
                 a.account_type === 'staff' && a.status === 'approved'
             );
+            
+            console.log('✅ 承認済みスタッフ:', approvedStaff.map(s => s.username));
             
             // シフトがないスタッフも追加
             approvedStaff.forEach(staff => {
                 if (!shiftsByStaff[staff.username]) {
                     shiftsByStaff[staff.username] = {};
+                    console.log(`  ➕ 追加: ${staff.username}`);
                 }
             });
         } catch (error) {
@@ -747,6 +754,9 @@ async function renderShiftTable(container, period, shifts, editable, deletable, 
     html += '</tr></thead><tbody>';
 
     const staffNames = Object.keys(shiftsByStaff).sort();
+    console.log('📅 表示するスタッフ一覧:', staffNames);
+    console.log('📊 period.id:', period.id);
+    console.log('🎯 addable:', addable, 'deletable:', deletable);
     staffNames.forEach(staffName => {
         html += `<tr><td><strong>${staffName}</strong></td>`;
         
@@ -759,6 +769,7 @@ async function renderShiftTable(container, period, shifts, editable, deletable, 
                 html += `<td class="${className} deletable-cell" onclick="deleteShiftCell('${staffName}', '${date}', '${period.id}')">${shiftType} <span class="cell-delete-icon">🗑️</span></td>`;
             } else if (addable && !shiftType) {
                 // ★ 空のセルをクリックで追加できるように
+                console.log(`➕ 追加可能セル: staff=${staffName}, date=${date}, period=${period.id}`);
                 html += `<td class="${className} addable-cell" onclick="openAddShiftModal('${staffName}', '${date}', '${period.id}')">➕</td>`;
             } else {
                 html += `<td class="${className}">${shiftType}</td>`;
@@ -780,6 +791,7 @@ async function renderShiftTable(container, period, shifts, editable, deletable, 
 // シフト追加モーダル（NEW!）
 // ========================================
 function openAddShiftModal(staffName, date, periodId) {
+    console.log('🔔 openAddShiftModal呼び出し:', {staffName, date, periodId});
     addShiftData = { staffName, date, periodId };
     
     const modal = document.getElementById('add-shift-modal');
