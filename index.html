@@ -204,6 +204,37 @@
     <!-- メッセージコンテナ -->
     <div id="message-container"></div>
 
+    <!-- シフト追加モーダル（NEW!） -->
+    <div id="add-shift-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ シフト追加</h3>
+                <button class="modal-close" onclick="closeAddShiftModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="add-shift-info" class="modal-info"></p>
+                <div class="form-group">
+                    <label for="add-shift-type">シフト種類</label>
+                    <select id="add-shift-type" class="form-select">
+                        <option value="">選択してください</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="L">L</option>
+                        <option value="N">N</option>
+                        <option value="CL">CL</option>
+                        <option value="BL">BL</option>
+                        <option value="BN">BN</option>
+                        <option value="CN">CN</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAddShiftModal()">キャンセル</button>
+                <button class="btn btn-success" onclick="confirmAddShift()">追加</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 外部ライブラリ -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
