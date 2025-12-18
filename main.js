@@ -797,18 +797,36 @@ async function confirmAddShift() {
             shift_type: shiftType
         };
         
-        await fetch(`${API_BASE_URL}/shifts`, {
+        console.log('送信するシフトデータ:', shift); // デバッグ用
+        
+        const response = await fetch(`${API_BASE_URL}/shifts`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(shift)
         });
         
+        console.log('APIレスポンスステータス:', response.status); // デバッグ用
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('APIエラーレスポンス:', errorData);
+            throw new Error(`API エラー: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('API成功レスポンス:', result); // デバッグ用
+        
         showMessage('シフトを追加しました', 'success');
+        
+        // 画面を強制的に再読み込み
+        console.log('シフト表を再読み込み中...');
         await loadManagerShifts();
         await loadSubmissionStats();
+        console.log('再読み込み完了');
+        
     } catch (error) {
-        console.error('追加エラー:', error);
-        showMessage('追加に失敗しました', 'error');
+        console.error('追加エラー詳細:', error);
+        showMessage(`追加に失敗しました: ${error.message}`, 'error');
     } finally {
         hideLoading();
     }
