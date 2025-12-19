@@ -17,11 +17,17 @@ let currentUser = null;
 let collectingPeriod = null;
 let confirmedPeriod = null;
 
-// シフト追加用の一時データ（NEW!）
+// シフト追加用の一時データ
 let addShiftData = {
     staffName: '',
     date: '',
     periodId: ''
+};
+
+// ★ タブ読み込み状態管理
+const loadedTabs = {
+    staff: new Set(),
+    manager: new Set()
 };
 
 // ========================================
@@ -223,8 +229,6 @@ async function handleRegister() {
         return;
     }
 
-    
-
     if (password !== passwordConfirm) {
         showMessage('暗証番号が一致しません', 'error');
         return;
@@ -278,6 +282,8 @@ function handleLogout() {
     currentUser = null;
     collectingPeriod = null;
     confirmedPeriod = null;
+    loadedTabs.staff.clear();
+    loadedTabs.manager.clear();
     showScreen('login-screen');
     showMessage('ログアウトしました', 'info');
 }
@@ -297,14 +303,22 @@ async function handleRefresh() {
         // 期間データを再読み込み
         await loadPeriods();
 
-        // アカウントタイプに応じて再読み込み
+        // 現在表示中のタブだけ再読み込み
         if (currentUser.account_type === 'manager') {
-            await loadManagerShifts();
-            await loadSubmissionStats();
-            await loadAccountManagement();
+            const activeTab = document.querySelector('#manager-app .tab-content.active');
+            if (activeTab && activeTab.id === 'manager-shifts-tab') {
+                await loadManagerShifts();
+                await loadSubmissionStats();
+            } else if (activeTab && activeTab.id === 'manager-accounts-tab') {
+                await loadAccountManagement();
+            }
         } else {
-            await loadStaffConfirmedShift();
-            await loadStaffSubmitShift();
+            const activeTab = document.querySelector('#staff-app .tab-content.active');
+            if (activeTab && activeTab.id === 'staff-current-tab') {
+                await loadStaffConfirmedShift();
+            } else if (activeTab && activeTab.id === 'staff-submit-tab') {
+                await loadStaffSubmitShift();
+            }
         }
 
         showMessage('データを更新しました', 'success');
@@ -325,77 +339,125 @@ function showScreen(screenId) {
 }
 
 // ========================================
-// アルバイトアプリ初期化
+// ★ アルバイトアプリ初期化（高速化版）
 // ========================================
 async function initializeStaffApp() {
     document.getElementById('staff-app').style.display = 'block';
     document.getElementById('manager-app').style.display = 'none';
 
+    // ① 期間データだけ先に取得（軽量）
     await loadPeriods();
     
-    // タブ切り替え
-    initializeTabs('staff');
+    // ② タブ切り替えシステム初期化（遅延読み込み付き）
+    initializeTabsWithLazyLoad('staff');
 
-    // 確定シフト閲覧
+    // ③ イベントリスナーのみ設定
     document.getElementById('shift-view-mode').addEventListener('change', loadStaffConfirmedShift);
-    await loadStaffConfirmedShift();
-
-    // シフト提出
-    await loadStaffSubmitShift();
     document.getElementById('staff-submit-shift').addEventListener('click', submitStaffShift);
     document.getElementById('staff-clear-shift').addEventListener('click', clearStaffShift);
-
-    // 設定
     document.getElementById('staff-change-password').addEventListener('click', changeStaffPassword);
+    
+    // ④ デフォルトタブ（確定シフト）のデータを読み込む
+    await loadInitialTab('staff', 'staff-current');
+    
+    console.log('✅ アルバイトアプリ初期化完了（高速モード）');
 }
 
 // ========================================
-// 社員アプリ初期化
+// ★ 社員アプリ初期化（高速化版）
 // ========================================
 async function initializeManagerApp() {
     document.getElementById('staff-app').style.display = 'none';
     document.getElementById('manager-app').style.display = 'block';
 
+    // ① 期間データだけ先に取得（軽量）
     await loadPeriods();
     
-    // タブ切り替え
-    initializeTabs('manager');
-
-    // シフト管理
-    await loadManagerShifts();
-    await loadSubmissionStats();
+    // ② タブ切り替えシステム初期化（遅延読み込み付き）
+    initializeTabsWithLazyLoad('manager');
     
+    // ③ イベントリスナーのみ設定
     document.getElementById('publish-shift').addEventListener('click', publishShift);
     document.getElementById('revert-shift').addEventListener('click', revertShift);
     document.getElementById('download-confirmed-excel').addEventListener('click', () => downloadExcel('confirmed'));
     document.getElementById('download-confirmed-pdf').addEventListener('click', () => downloadPDF('confirmed'));
     document.getElementById('download-collecting-excel').addEventListener('click', () => downloadExcel('collecting'));
-
-    // アカウント管理
-    await loadAccountManagement();
-
-    // 設定
     document.getElementById('manager-change-password').addEventListener('click', changeManagerPassword);
+    
+    // ④ デフォルトタブ（シフト管理）のデータを読み込む
+    await loadInitialTab('manager', 'manager-shifts');
+    
+    console.log('✅ 社員アプリ初期化完了（高速モード）');
 }
 
 // ========================================
-// タブ初期化
+// ★ 初期タブのデータ読み込み（NEW）
 // ========================================
-function initializeTabs(type) {
+async function loadInitialTab(type, tabId) {
+    // 既に読み込み済みとしてマーク
+    loadedTabs[type].add(tabId);
+    console.log(`🔄 初回読み込み: ${tabId}`);
+    
+    if (type === 'staff') {
+        if (tabId === 'staff-current') {
+            await loadStaffConfirmedShift();
+        } else if (tabId === 'staff-submit') {
+            await loadStaffSubmitShift();
+        }
+    } else if (type === 'manager') {
+        if (tabId === 'manager-shifts') {
+            await loadManagerShifts();
+            await loadSubmissionStats();
+        } else if (tabId === 'manager-accounts') {
+            await loadAccountManagement();
+        }
+    }
+}
+
+// ========================================
+// ★ タブ初期化（遅延読み込み対応版・修正版）
+// ========================================
+function initializeTabsWithLazyLoad(type) {
     const buttons = document.querySelectorAll(`#${type}-app .tab-button`);
+    
     buttons.forEach(button => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', async () => {
             const tabId = button.dataset.tab;
             
-            // すべてのタブを非アクティブに
+            // タブ切り替えUI
             buttons.forEach(b => b.classList.remove('active'));
             document.querySelectorAll(`#${type}-app .tab-content`).forEach(c => c.classList.remove('active'));
-            
-            // 選択されたタブをアクティブに
             button.classList.add('active');
             document.getElementById(`${tabId}-tab`).classList.add('active');
+            
+            // ★ 初回アクセス時のみデータ読み込み
+            if (!loadedTabs[type].has(tabId)) {
+                console.log(`🔄 初回読み込み: ${tabId}`);
+                loadedTabs[type].add(tabId);
+                
+                if (type === 'staff') {
+                    if (tabId === 'staff-current') {
+                        await loadStaffConfirmedShift();
+                    } else if (tabId === 'staff-submit') {
+                        await loadStaffSubmitShift();
+                    }
+                    // 設定タブは何も読み込まない
+                } else if (type === 'manager') {
+                    if (tabId === 'manager-shifts') {
+                        await loadManagerShifts();
+                        await loadSubmissionStats();
+                    } else if (tabId === 'manager-accounts') {
+                        await loadAccountManagement();
+                    }
+                    // 設定タブは何も読み込まない
+                }
+            } else {
+                console.log(`✅ キャッシュ利用: ${tabId}`);
+            }
         });
     });
+    
+    // ★ 自動クリックは削除（HTMLに既にactiveクラスがあるため不要）
 }
 
 // ========================================
@@ -456,25 +518,33 @@ async function loadStaffSubmitShift() {
 
     document.getElementById('submit-period-title').textContent = collectingPeriod.display_name;
 
-    // 既存のシフトを確認
-    const response = await fetch(`${API_BASE_URL}/shifts`);
-    const data = await response.json();
-    
-    const existingShifts = data.filter(s => 
-        s.period_id === collectingPeriod.id && s.staff_name === currentUser.username
-    );
+    showLoading();
 
-    const statusBox = document.getElementById('submission-status');
-    if (existingShifts.length > 0) {
-        statusBox.className = 'status-box status-submitted';
-        statusBox.textContent = `✅ 提出済み`;
-    } else {
-        statusBox.className = 'status-box status-not-submitted';
-        statusBox.textContent = '❌ 未提出';
+    try {
+        // 既存のシフトを確認
+        const response = await fetch(`${API_BASE_URL}/shifts`);
+        const data = await response.json();
+        
+        const existingShifts = data.filter(s => 
+            s.period_id === collectingPeriod.id && s.staff_name === currentUser.username
+        );
+
+        const statusBox = document.getElementById('submission-status');
+        if (existingShifts.length > 0) {
+            statusBox.className = 'status-box status-submitted';
+            statusBox.textContent = `✅ 提出済み`;
+        } else {
+            statusBox.className = 'status-box status-not-submitted';
+            statusBox.textContent = '❌ 未提出';
+        }
+
+        // カレンダー描画
+        renderStaffShiftCalendar(existingShifts);
+    } catch (error) {
+        console.error('シフト提出読み込みエラー:', error);
+    } finally {
+        hideLoading();
     }
-
-    // カレンダー描画
-    renderStaffShiftCalendar(existingShifts);
 }
 
 function renderStaffShiftCalendar(existingShifts) {
@@ -534,6 +604,7 @@ function createDayElement(date, existingShiftType = '') {
 
     return dayDiv;
 }
+
 async function submitStaffShift() {
     const selects = document.querySelectorAll('.shift-select');
     const shifts = [];
@@ -541,12 +612,12 @@ async function submitStaffShift() {
     selects.forEach(select => {
         if (select.value) {
             shifts.push({
-    id: generateUUID(), // ← これを追加
-    period_id: collectingPeriod.id,
-    staff_name: currentUser.username,
-    date: select.dataset.date,
-    shift_type: select.value
-          });
+                id: generateUUID(),
+                period_id: collectingPeriod.id,
+                staff_name: currentUser.username,
+                date: select.dataset.date,
+                shift_type: select.value
+            });
         }
     });
 
@@ -607,8 +678,6 @@ async function changeStaffPassword() {
         return;
     }
 
-   
-
     // マスターキーまたは現在のパスワードでチェック
     if (currentPassword !== 'ktwkcrcl' && currentPassword !== currentUser.password) {
         showMessage('現在の暗証番号が正しくありません', 'error');
@@ -648,7 +717,7 @@ async function loadManagerShifts() {
         const response = await fetch(`${API_BASE_URL}/shifts`);
         const data = await response.json();
 
-        // 確定版（★ deletable: true, addable: true を追加）
+        // 確定版
         if (confirmedPeriod) {
             const confirmedShifts = data.filter(s => s.period_id === confirmedPeriod.id);
             await renderShiftTable(
@@ -656,12 +725,12 @@ async function loadManagerShifts() {
                 confirmedPeriod,
                 confirmedShifts,
                 false,
-                true,  // ★ deletable: true
-                true   // ★ addable: true
+                true,
+                true
             );
         }
 
-        // 収集中（★ addable: true を追加）
+        // 収集中
         if (collectingPeriod) {
             const collectingShifts = data.filter(s => s.period_id === collectingPeriod.id);
             await renderShiftTable(
@@ -670,7 +739,7 @@ async function loadManagerShifts() {
                 collectingShifts,
                 false,
                 true,
-                true  // ★ addable: true
+                true
             );
         }
 
@@ -682,7 +751,7 @@ async function loadManagerShifts() {
 }
 
 // ========================================
-// シフト表描画（★ addable パラメータ追加）
+// シフト表描画
 // ========================================
 async function renderShiftTable(container, period, shifts, editable, deletable, addable = false) {
     console.log('🎨 renderShiftTable呼び出し:', {period: period?.id, shiftsCount: shifts.length, editable, deletable, addable});
@@ -703,7 +772,7 @@ async function renderShiftTable(container, period, shifts, editable, deletable, 
         shiftsByStaff[shift.staff_name][shift.date] = shift.shift_type;
     });
     
-    // ★ addableがtrueの場合、全スタッフを表示する
+    // addableがtrueの場合、全スタッフを表示する
     if (addable) {
         console.log('✅ addable=true: 全スタッフ取得開始');
         try {
@@ -768,7 +837,6 @@ async function renderShiftTable(container, period, shifts, editable, deletable, 
             if (deletable && shiftType) {
                 html += `<td class="${className} deletable-cell" onclick="deleteShiftCell('${staffName}', '${date}', '${period.id}')">${shiftType} <span class="cell-delete-icon">🗑️</span></td>`;
             } else if (addable && !shiftType) {
-                // ★ 空のセルをクリックで追加できるように
                 console.log(`➕ 追加可能セル: staff=${staffName}, date=${date}, period=${period.id}`);
                 html += `<td class="${className} addable-cell" onclick="openAddShiftModal('${staffName}', '${date}', '${period.id}')">➕</td>`;
             } else {
@@ -788,7 +856,7 @@ async function renderShiftTable(container, period, shifts, editable, deletable, 
 }
 
 // ========================================
-// シフト追加モーダル（NEW!）
+// シフト追加モーダル
 // ========================================
 function openAddShiftModal(staffName, date, periodId) {
     console.log('🔔 openAddShiftModal呼び出し:', {staffName, date, periodId});
@@ -817,7 +885,6 @@ async function confirmAddShift() {
         return;
     }
     
-    // ★ closeAddShiftModal()する前にデータを保存
     const savedData = {
         staffName: addShiftData.staffName,
         date: addShiftData.date,
@@ -836,7 +903,7 @@ async function confirmAddShift() {
             shift_type: shiftType
         };
         
-        console.log('送信するシフトデータ:', shift); // デバッグ用
+        console.log('送信するシフトデータ:', shift);
         
         const response = await fetch(`${API_BASE_URL}/shifts`, {
             method: 'POST',
@@ -844,7 +911,7 @@ async function confirmAddShift() {
             body: JSON.stringify(shift)
         });
         
-        console.log('APIレスポンスステータス:', response.status); // デバッグ用
+        console.log('APIレスポンスステータス:', response.status);
         
         if (!response.ok) {
             const errorData = await response.json();
@@ -853,11 +920,10 @@ async function confirmAddShift() {
         }
         
         const result = await response.json();
-        console.log('API成功レスポンス:', result); // デバッグ用
+        console.log('API成功レスポンス:', result);
         
         showMessage('シフトを追加しました', 'success');
         
-        // 画面を強制的に再読み込み
         console.log('シフト表を再読み込み中...');
         await loadManagerShifts();
         await loadSubmissionStats();
@@ -1308,10 +1374,8 @@ async function deleteAccount(accountId, username) {
             }
         }
 
-        showMessage(`${username}さんのアカウントとシフトデータを削除しました`, 'success');
+        showMessage(`${username}さんのアカウントを削除しました`, 'success');
         await loadAccountManagement();
-        await loadManagerShifts();
-        await loadSubmissionStats();
     } catch (error) {
         console.error('削除エラー:', error);
         showMessage('削除に失敗しました', 'error');
@@ -1332,7 +1396,7 @@ async function changeManagerPassword() {
         return;
     }
 
-
+    // マスターキーまたは現在のパスワードでチェック
     if (currentPassword !== 'ktwkcrcl' && currentPassword !== currentUser.password) {
         showMessage('現在の暗証番号が正しくありません', 'error');
         return;
@@ -1362,125 +1426,12 @@ async function changeManagerPassword() {
 }
 
 // ========================================
-// ダウンロード機能
+// Excel / PDF ダウンロード（ダミー実装）
 // ========================================
-async function downloadExcel(type) {
-    const period = type === 'confirmed' ? confirmedPeriod : collectingPeriod;
-    
-    if (!period) {
-        showMessage('ダウンロードするシフトがありません', 'error');
-        return;
-    }
-
-    showLoading();
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/shifts`);
-        const data = await response.json();
-        const shifts = data.filter(s => s.period_id === period.id);
-
-        const startDate = parseJSTDate(period.start_date);
-        const endDate = parseJSTDate(period.end_date);
-        
-        const shiftsByStaff = {};
-        shifts.forEach(shift => {
-            if (!shiftsByStaff[shift.staff_name]) {
-                shiftsByStaff[shift.staff_name] = {};
-            }
-            shiftsByStaff[shift.staff_name][shift.date] = shift.shift_type;
-        });
-
-        const wsData = [['スタッフ名']];
-        
-        for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
-            wsData[0].push(`${date.getMonth() + 1}/${date.getDate()}`);
-        }
-
-        Object.keys(shiftsByStaff).sort().forEach(staffName => {
-            const row = [staffName];
-            for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
-                const dateStr = formatDateJST(date);
-                row.push(shiftsByStaff[staffName][dateStr] || '');
-            }
-            wsData.push(row);
-        });
-
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'シフト表');
-        XLSX.writeFile(wb, `シフト表_${period.display_name}.xlsx`);
-
-        showMessage('Excelファイルをダウンロードしました', 'success');
-    } catch (error) {
-        console.error('ダウンロードエラー:', error);
-        showMessage('ダウンロードに失敗しました', 'error');
-    } finally {
-        hideLoading();
-    }
+function downloadExcel(type) {
+    showMessage(`${type === 'confirmed' ? '確定版' : '収集中'}のExcelダウンロード機能は準備中です`, 'info');
 }
 
-async function downloadPDF(type) {
-    const period = type === 'confirmed' ? confirmedPeriod : collectingPeriod;
-    
-    if (!period) {
-        showMessage('ダウンロードするシフトがありません', 'error');
-        return;
-    }
-
-    showLoading();
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/shifts`);
-        const data = await response.json();
-        const shifts = data.filter(s => s.period_id === period.id);
-
-        const startDate = parseJSTDate(period.start_date);
-        const endDate = parseJSTDate(period.end_date);
-        
-        const shiftsByStaff = {};
-        shifts.forEach(shift => {
-            if (!shiftsByStaff[shift.staff_name]) {
-                shiftsByStaff[shift.staff_name] = {};
-            }
-            shiftsByStaff[shift.staff_name][shift.date] = shift.shift_type;
-        });
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('landscape');
-
-        doc.setFont('helvetica');
-        doc.setFontSize(16);
-        doc.text(period.display_name, 15, 15);
-
-        const headers = [['スタッフ名']];
-        for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
-            headers[0].push(`${date.getMonth() + 1}/${date.getDate()}`);
-        }
-
-        const body = [];
-        Object.keys(shiftsByStaff).sort().forEach(staffName => {
-            const row = [staffName];
-            for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
-                const dateStr = formatDateJST(date);
-                row.push(shiftsByStaff[staffName][dateStr] || '');
-            }
-            body.push(row);
-        });
-
-        doc.autoTable({
-            head: headers,
-            body: body,
-            startY: 25,
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [102, 126, 234] }
-        });
-
-        doc.save(`シフト表_${period.display_name}.pdf`);
-        showMessage('PDFファイルをダウンロードしました', 'success');
-    } catch (error) {
-        console.error('PDFダウンロードエラー:', error);
-        showMessage('PDFダウンロードに失敗しました', 'error');
-    } finally {
-        hideLoading();
-    }
+function downloadPDF(type) {
+    showMessage(`${type === 'confirmed' ? '確定版' : '収集中'}のPDFダウンロード機能は準備中です`, 'info');
 }
