@@ -364,6 +364,179 @@ async function initializeStaffApp() {
 }
 
 // ========================================
+// ダウンロード機能
+// ========================================
+async function downloadExcel(type) {
+    console.log('🔍 Excel出力開始', { type });
+    
+    const period = type === 'confirmed' ? confirmedPeriod : collectingPeriod;
+    
+    if (!period) {
+        hideLoading();
+        showMessage('ダウンロードするシフトがありません', 'error');
+        return;
+    }
+
+    if (typeof XLSX === 'undefined') {
+        hideLoading();
+        alert('エラー: Excelライブラリが読み込まれていません');
+        showMessage('Excel機能が利用できません', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        console.log('📡 API通信開始...');
+        const response = await fetch(`${API_BASE_URL}/shifts`);
+        
+        if (!response.ok) {
+            throw new Error(`APIエラー: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('📊 全シフトデータ数:', data.length);
+        
+        const shifts = data.filter(s => s.period_id === period.id);
+        console.log('📋 対象期間のシフト数:', shifts.length);
+
+        if (shifts.length === 0) {
+            hideLoading();
+            showMessage('この期間にはシフトデータがありません', 'warning');
+            return;
+        }
+
+        const startDate = parseJSTDate(period.start_date);
+        const endDate = parseJSTDate(period.end_date);
+        
+        const shiftsByStaff = {};
+        shifts.forEach(shift => {
+            if (!shiftsByStaff[shift.staff_name]) {
+                shiftsByStaff[shift.staff_name] = {};
+            }
+            shiftsByStaff[shift.staff_name][shift.date] = shift.shift_type;
+        });
+
+        const wsData = [['スタッフ名']];
+        
+        for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+            wsData[0].push(`${date.getMonth() + 1}/${date.getDate()}`);
+        }
+
+        const staffNames = Object.keys(shiftsByStaff).sort();
+        console.log('👥 スタッフ数:', staffNames.length);
+
+        if (staffNames.length === 0) {
+            hideLoading();
+            showMessage('この期間にはスタッフデータがありません', 'warning');
+            return;
+        }
+
+        staffNames.forEach(staffName => {
+            const row = [staffName];
+            for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+                const dateStr = formatDateJST(date);
+                row.push(shiftsByStaff[staffName][dateStr] || '');
+            }
+            wsData.push(row);
+        });
+
+        console.log('📝 Excelデータ生成', { rows: wsData.length, cols: wsData[0].length });
+        
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'シフト表');
+        
+        console.log('💾 ファイル保存中...');
+        XLSX.writeFile(wb, `シフト表_${period.display_name}.xlsx`);
+        
+        console.log('✅ Excel出力完了');
+        showMessage('Excelファイルをダウンロードしました', 'success');
+    } catch (error) {
+        console.error('❌ ダウンロードエラー:', error);
+        showMessage('ダウンロードに失敗しました: ' + error.message, 'error');
+    } finally {
+        console.log('🏁 処理終了');
+        hideLoading();
+    }
+}
+
+async function downloadPDF(type) {
+    const period = type === 'confirmed' ? confirmedPeriod : collectingPeriod;
+    
+    if (!period) {
+        hideLoading();
+        showMessage('ダウンロードするシフトがありません', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/shifts`);
+        const data = await response.json();
+        const shifts = data.filter(s => s.period_id === period.id);
+
+        if (shifts.length === 0) {
+            hideLoading();
+            showMessage('この期間にはシフトデータがありません', 'warning');
+            return;
+        }
+
+        const startDate = parseJSTDate(period.start_date);
+        const endDate = parseJSTDate(period.end_date);
+        
+        const shiftsByStaff = {};
+        shifts.forEach(shift => {
+            if (!shiftsByStaff[shift.staff_name]) {
+                shiftsByStaff[shift.staff_name] = {};
+            }
+            shiftsByStaff[shift.staff_name][shift.date] = shift.shift_type;
+        });
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFont('helvetica');
+        doc.setFontSize(16);
+        doc.text(`シフト表 - ${period.display_name}`, 105, 15, { align: 'center' });
+
+        const tableData = [];
+        const headers = ['スタッフ名'];
+        
+        for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+            headers.push(`${date.getMonth() + 1}/${date.getDate()}`);
+        }
+
+        Object.keys(shiftsByStaff).sort().forEach(staffName => {
+            const row = [staffName];
+            for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+                const dateStr = formatDateJST(date);
+                row.push(shiftsByStaff[staffName][dateStr] || '');
+            }
+            tableData.push(row);
+        });
+
+        doc.autoTable({
+            head: [headers],
+            body: tableData,
+            startY: 25,
+            styles: { font: 'helvetica', fontSize: 8 },
+            headStyles: { fillColor: [41, 128, 185] }
+        });
+
+        doc.save(`シフト表_${period.display_name}.pdf`);
+        showMessage('PDFファイルをダウンロードしました', 'success');
+    } catch (error) {
+        console.error('ダウンロードエラー:', error);
+        showMessage('ダウンロードに失敗しました', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+
+// ========================================
 // ★ 社員アプリ初期化（高速化版）
 // ========================================
 async function initializeManagerApp() {
