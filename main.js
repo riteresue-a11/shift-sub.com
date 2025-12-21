@@ -1425,13 +1425,4 @@ async function changeManagerPassword() {
     }
 }
 
-// ========================================
-// Excel / PDF ダウンロード（ダミー実装）
-// ========================================
-function downloadExcel(type) {
-    showMessage(`${type === 'confirmed' ? '確定版' : '収集中'}のExcelダウンロード機能は準備中です`, 'info');
-}
 
-function downloadPDF(type) {
-    showMessage(`${type === 'confirmed' ? '確定版' : '収集中'}のPDFダウンロード機能は準備中です`, 'info');
-}
