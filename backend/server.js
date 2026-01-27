@@ -9,7 +9,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ミドルウェア
-app.use(cors());
+app.use(cors({
+  origin: ['https://shift-sub-com.onrender.com', 'https://shift-sub.com'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(bodyParser.json());
 
 // ルートエンドポイント
