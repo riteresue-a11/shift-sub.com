@@ -58,8 +58,11 @@ async function initializeDatabase() {
         [defaultUserId, 'kokian', '1111', 'manager', 'approved']
       );
       console.log('✅ 初期管理者アカウント作成完了 (username: kokian)');
+    }
 
-      // 初期シフト期間を作成
+    // 初期シフト期間を作成(期間が0件の場合のみ)
+    const periodCheck = await client.query('SELECT COUNT(*) FROM shift_periods');
+    if (periodCheck.rows[0].count === '0') {
       const confirmedId = uuidv4();
       const collectingId = uuidv4();
       
