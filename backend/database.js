@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const { v4: uuidv4 } = require('uuid');
 
 // データベース接続プール
 const pool = new Pool({
@@ -46,6 +47,19 @@ async function initializeDatabase() {
     `);
 
     console.log('✅ データベーステーブル初期化完了');
+
+    // 初期管理者アカウント作成(アカウントが0件の場合のみ)
+    const accountCheck = await client.query('SELECT COUNT(*) FROM accounts');
+    if (accountCheck.rows[0].count === '0') {
+      const defaultUserId = uuidv4();
+      await client.query(
+        `INSERT INTO accounts (id, username, password, account_type, status, created_at, approved_at)
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
+        [defaultUserId, 'kokian', '1111', 'manager', 'approved']
+      );
+      console.log('✅ 初期管理者アカウント作成完了 (username: kokian)');
+    }
+
   } catch (error) {
     console.error('❌ データベース初期化エラー:', error);
   } finally {
