@@ -58,6 +58,22 @@ async function initializeDatabase() {
         [defaultUserId, 'kokian', '1111', 'manager', 'approved']
       );
       console.log('✅ 初期管理者アカウント作成完了 (username: kokian)');
+
+      // 初期シフト期間を作成
+      const confirmedId = uuidv4();
+      const collectingId = uuidv4();
+      
+      await client.query(
+        'INSERT INTO shift_periods (id, start_date, end_date, status, display_name) VALUES ($1, $2, $3, $4, $5)',
+        [confirmedId, '2025-12-16', '2026-01-15', 'confirmed', '2025年12月16日〜2026年1月15日']
+      );
+      
+      await client.query(
+        'INSERT INTO shift_periods (id, start_date, end_date, status, display_name) VALUES ($1, $2, $3, $4, $5)',
+        [collectingId, '2026-01-16', '2026-02-15', 'collecting', '2026年1月16日〜2026年2月15日']
+      );
+      
+      console.log('✅ 初期シフト期間作成完了');
     }
 
   } catch (error) {
