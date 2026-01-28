@@ -760,7 +760,7 @@ function createDayElement(date, existingShiftType = '') {
     select.className = 'shift-select';
     select.dataset.date = formatDateJST(date);
     
-    const options = ['', 'B', 'C', 'L', 'N', 'CL', 'BL', 'BN', 'CN'];
+    const options = ['', 'A', 'B', 'C', 'L', 'M', 'N', 'AL', 'AM', 'AN', 'BL', 'BM', 'BN', 'CL', 'CM', 'CN'];
     options.forEach(opt => {
         const option = document.createElement('option');
         option.value = opt;
