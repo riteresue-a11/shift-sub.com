@@ -1,6 +1,4 @@
-/* ===========================
-   グローバルリセット
-   =========================== */
+/* 和風デザイン - 白基調 - オリジナル版 */
 * {
     margin: 0;
     padding: 0;
@@ -8,400 +6,42 @@
 }
 
 body {
-    font-family: 'Noto Serif JP', serif;
-    background: linear-gradient(135deg, #faf8f5 0%, #f0ebe3 100%);
-    color: #2c2416;
-    line-height: 1.6;
+    font-family: 'Noto Serif JP', 'YuMincho', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+    background: #f5f3ef;
     min-height: 100vh;
+    color: #2a2a2a;
+    line-height: 2.1;
+    position: relative;
 }
 
-/* ===========================
-   ローディングオーバーレイ
-   =========================== */
-#loading-overlay {
+body::before {
+    content: '';
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(250, 248, 245, 0.98);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    backdrop-filter: blur(5px);
+    right: 0;
+    bottom: 0;
+    background-image: 
+        radial-gradient(circle at 20% 50%, rgba(201, 169, 97, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(201, 169, 97, 0.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
 }
 
-.loading-content {
-    text-align: center;
+.container {
+    max-width: 100%;
+    margin: 0 auto;
+    background: linear-gradient(to bottom, rgba(250, 248, 245, 0.95) 0%, rgba(245, 243, 239, 0.98) 100%);
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
 }
 
-.spinner {
-    width: 60px;
-    height: 60px;
-    border: 4px solid rgba(201, 169, 97, 0.2);
-    border-top: 4px solid #c9a961;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.loading-text {
-    color: #c9a961;
-    font-size: 1.1rem;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-}
-
-/* ===========================
-   ヘッダー
-   =========================== */
-header {
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(250, 248, 245, 0.9) 100%);
-    padding: 20px;
-    text-align: center;
-    border-bottom: 2px solid #c9a961;
-    box-shadow: 0 4px 20px rgba(201, 169, 97, 0.15);
-}
-
-header h1 {
-    color: #c9a961;
-    font-size: 1.8rem;
-    font-weight: 600;
-    letter-spacing: 0.15em;
-    text-shadow: 2px 2px 4px rgba(201, 169, 97, 0.2);
-}
-
-/* ===========================
-   アプリヘッダー
-   =========================== */
-.app-header {
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(250, 248, 245, 0.9) 100%);
-    padding: 15px 20px;
-    border-bottom: 2px solid #c9a961;
-    box-shadow: 0 2px 15px rgba(201, 169, 97, 0.12);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.app-title {
-    color: #c9a961;
-    font-size: 1.3rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-}
-
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-#current-user {
-    color: #2c2416;
-    font-weight: 500;
-    padding: 8px 16px;
-    background: rgba(201, 169, 97, 0.1);
-    border-radius: 20px;
-    border: 1px solid rgba(201, 169, 97, 0.3);
-}
-
-/* ===========================
-   認証フォーム
-   =========================== */
-.auth-container {
-    max-width: 400px;
-    margin: 80px auto;
-    padding: 40px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    border: 2px solid #c9a961;
-    box-shadow: 
-        0 8px 30px rgba(201, 169, 97, 0.2),
-        0 0 60px rgba(201, 169, 97, 0.1);
-}
-
-.auth-form h2 {
-    color: #c9a961;
-    text-align: center;
-    margin-bottom: 30px;
-    font-size: 1.6rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    color: #2c2416;
-    margin-bottom: 8px;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 12px 15px;
-    border: 2px solid rgba(201, 169, 97, 0.3);
-    border-radius: 8px;
-    font-size: 1rem;
-    font-family: 'Noto Serif JP', serif;
-    background: rgba(255, 255, 255, 0.9);
-    transition: all 0.3s ease;
-}
-
-.form-group input:focus {
-    outline: none;
-    border-color: #c9a961;
-    box-shadow: 0 0 0 3px rgba(201, 169, 97, 0.1);
-    background: #fff;
-}
-
-/* ===========================
-   ボタン共通スタイル
-   =========================== */
-.btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-family: 'Noto Serif JP', serif;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    letter-spacing: 0.05em;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #c9a961 0%, #b8986e 100%);
-    color: white;
-    border: 2px solid transparent;
-    box-shadow: 0 4px 15px rgba(201, 169, 97, 0.3);
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(201, 169, 97, 0.4);
-}
-
-.btn-primary:active {
-    transform: translateY(0);
-}
-
-.btn-secondary {
-    background: rgba(201, 169, 97, 0.1);
-    color: #c9a961;
-    border: 2px solid #c9a961;
-}
-
-.btn-secondary:hover {
-    background: rgba(201, 169, 97, 0.2);
-    transform: translateY(-2px);
-}
-
-.btn-danger {
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-    color: white;
-    border: 2px solid transparent;
-    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
-}
-
-.btn-danger:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
-}
-
-/* ===========================
-   タブとセクション
-   =========================== */
-.tabs {
-    display: flex;
-    gap: 10px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.5);
-    border-bottom: 2px solid rgba(201, 169, 97, 0.2);
-}
-
-.tab {
-    padding: 12px 24px;
-    background: rgba(255, 255, 255, 0.8);
-    border: 2px solid rgba(201, 169, 97, 0.3);
-    border-radius: 8px 8px 0 0;
-    color: #2c2416;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-}
-
-.tab:hover {
-    background: rgba(201, 169, 97, 0.1);
-    border-color: #c9a961;
-}
-
-.tab.active {
-    background: linear-gradient(135deg, #c9a961 0%, #b8986e 100%);
-    color: white;
-    border-color: #c9a961;
-    box-shadow: 0 -2px 10px rgba(201, 169, 97, 0.3);
-}
-
-.content-section {
-    display: none;
-    padding: 30px;
-    animation: fadeIn 0.5s ease;
-}
-
-.content-section.active {
-    display: block;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* ===========================
-   ステータスボックス
-   =========================== */
-.status-box {
-    background: rgba(255, 255, 255, 0.9);
-    padding: 20px;
-    border-radius: 10px;
-    border: 2px solid rgba(201, 169, 97, 0.3);
-    margin-bottom: 25px;
-    box-shadow: 0 4px 15px rgba(201, 169, 97, 0.1);
-}
-
-.status-box h3 {
-    color: #c9a961;
-    margin-bottom: 15px;
-    font-size: 1.2rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-}
-
-/* ===========================
-   カレンダー・シフト表
-   =========================== */
-#staff-shift-calendar {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 25px;
-    border-radius: 12px;
-    border: 2px solid #c9a961;
-    box-shadow: 
-        0 8px 30px rgba(201, 169, 97, 0.2),
-        0 0 60px rgba(201, 169, 97, 0.1);
-}
-
-#staff-shift-calendar h3 {
-    color: #c9a961;
-    margin-bottom: 20px;
-    font-size: 1.3rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-align: center;
-}
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.calendar-day {
-    background: rgba(255, 255, 255, 0.9);
-    padding: 15px;
-    border-radius: 8px;
-    border: 2px solid rgba(201, 169, 97, 0.3);
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.calendar-day:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(201, 169, 97, 0.2);
-    border-color: #c9a961;
-}
-
-.date {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #c9a961;
-    margin-bottom: 8px;
-    letter-spacing: 0.05em;
-}
-
-.shift-type {
-    font-size: 0.95rem;
-    color: #2c2416;
-    padding: 6px 12px;
-    background: rgba(201, 169, 97, 0.1);
-    border-radius: 6px;
-    display: inline-block;
-}
-
-/* ===========================
-   テーブル共通
-   =========================== */
-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(201, 169, 97, 0.15);
-}
-
-table th {
-    background: linear-gradient(to bottom, rgba(250, 248, 245, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
-    color: #c9a961;
-    font-weight: 600;
-    padding: 15px 12px;
-    text-align: center;
-    border-bottom: 2px solid rgba(201, 169, 97, 0.3);
-    letter-spacing: 0.08em;
-    font-size: 0.95rem;
-}
-
-table td {
-    padding: 12px;
-    text-align: center;
-    border-bottom: 1px solid rgba(201, 169, 97, 0.15);
-    color: #2c2416;
-    font-size: 0.9rem;
-}
-
-table tr:last-child td {
-    border-bottom: none;
-}
-
-table tr:hover {
-    background: rgba(201, 169, 97, 0.05);
-}
-
+/* シフト表 - 和風 */
 .shift-table {
     overflow-x: auto;
-    margin-top: 20px;
+    margin-top: 40px;
     border: 2px solid #c9a961;
-    border-radius: 10px;
     box-shadow: 
         0 8px 30px rgba(201, 169, 97, 0.2),
         0 0 60px rgba(201, 169, 97, 0.1);
@@ -412,449 +52,67 @@ table tr:hover {
 .shift-table::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, 
-        transparent 0%,
-        #c9a961 50%,
-        transparent 100%
-    );
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, transparent 30%, rgba(201, 169, 97, 0.1) 50%, transparent 70%);
+    pointer-events: none;
+    opacity: 0.3;
 }
 
-/* ===========================
-   削除可能/追加可能セル
-   =========================== */
-.deletable-cell {
-    cursor: pointer;
-    transition: all 0.3s ease;
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+table th,
+table td {
+    padding: 16px 14px;
+    text-align: center;
+    border: 1px solid #e8e4de;
+    font-size: 0.9rem;
+    font-weight: 400;
+}
+
+table th {
+    background: 
+        linear-gradient(to bottom, rgba(250, 248, 245, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
+    color: #2a2a2a;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    border-bottom: 2px solid #c9a961;
     position: relative;
 }
 
-.deletable-cell:hover {
-    background: rgba(231, 76, 60, 0.1);
-    color: #e74c3c;
-    transform: scale(1.05);
+table tr:hover {
+    background: rgba(201, 169, 97, 0.05);
 }
 
-.addable-cell {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 2rem;
-    color: rgba(201, 169, 97, 0.5);
-    padding: 10px;
-    min-width: 60px;
-    min-height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+table td.saturday {
+    background: rgba(176, 224, 230, 0.1);
 }
 
-.addable-cell:hover {
-    background: rgba(201, 169, 97, 0.1);
-    color: #c9a961;
-    transform: scale(1.1);
+table td.sunday {
+    background: rgba(255, 192, 203, 0.1);
 }
 
-.addable-cell:active {
-    transform: scale(1.05);
-    background: rgba(201, 169, 97, 0.2);
-}
-
-.btn-delete-date {
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
-}
-
-.btn-delete-date:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
-}
-
-/* ===========================
-   アカウント管理
-   =========================== */
-.account-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(201, 169, 97, 0.2);
-    border-radius: 10px;
-    margin-bottom: 12px;
-    transition: all 0.3s ease;
-}
-
-.account-item:hover {
-    transform: translateX(5px);
-    border-color: #c9a961;
-    box-shadow: 0 4px 15px rgba(201, 169, 97, 0.15);
-}
-
-.account-name {
-    font-weight: 500;
-    color: #2c2416;
-    letter-spacing: 0.05em;
-}
-
-.badge {
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-}
-
-.badge-approved {
-    background: rgba(46, 204, 113, 0.15);
-    color: #27ae60;
-    border: 1px solid rgba(46, 204, 113, 0.3);
-}
-
-.badge-pending {
-    background: rgba(241, 196, 15, 0.15);
-    color: #f39c12;
-    border: 1px solid rgba(241, 196, 15, 0.3);
-}
-
-/* ===========================
-   提出状況
-   =========================== */
-.submission-stat {
-    background: rgba(255, 255, 255, 0.9);
-    padding: 20px;
-    border-radius: 10px;
-    border: 2px solid rgba(201, 169, 97, 0.3);
-    margin-bottom: 15px;
-    transition: all 0.3s ease;
-}
-
-.submission-stat:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(201, 169, 97, 0.2);
-    border-color: #c9a961;
-}
-
-.stat-card {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.stat-item {
-    background: rgba(255, 255, 255, 0.9);
-    padding: 20px;
-    border-radius: 10px;
-    border: 2px solid rgba(201, 169, 97, 0.3);
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.stat-item:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(201, 169, 97, 0.2);
-    border-color: #c9a961;
-}
-
-.stat-number {
-    font-size: 2rem;
-    font-weight: 600;
-    color: #c9a961;
-    margin-bottom: 8px;
-}
-
-.stat-label {
-    color: #2c2416;
-    font-size: 0.95rem;
-    letter-spacing: 0.05em;
-}
-
-/* ===========================
-   スタッフリスト
-   =========================== */
-.staff-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.staff-card {
-    background: rgba(255, 255, 255, 0.9);
-    padding: 15px;
-    border-radius: 10px;
-    border: 2px solid rgba(201, 169, 97, 0.3);
-    transition: all 0.3s ease;
-}
-
-.staff-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(201, 169, 97, 0.2);
-    border-color: #c9a961;
-}
-
-/* ===========================
-   メッセージ表示
-   =========================== */
-#message-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 10000;
-    max-width: 400px;
-}
-
-.message {
-    padding: 15px 20px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    animation: slideIn 0.3s ease;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(400px);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-.message.info {
-    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-    color: white;
-    border: 2px solid #2980b9;
-}
-
-.message.success {
-    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-    color: white;
-    border: 2px solid #27ae60;
-}
-
-.message.error {
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-    color: white;
-    border: 2px solid #c0392b;
-}
-
-/* ===========================
-   モーダル（シフト追加）
-   =========================== */
-#add-shift-modal {
-    display: none;
-    position: fixed;
-    z-index: 10001;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(44, 36, 22, 0.6);
-    backdrop-filter: blur(5px);
-    animation: fadeIn 0.3s ease;
-}
-
-.modal-content {
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.98) 0%, rgba(250, 248, 245, 0.95) 100%);
-    margin: 10% auto;
-    padding: 30px;
-    border: 3px solid #c9a961;
-    border-radius: 15px;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 
-        0 10px 40px rgba(201, 169, 97, 0.3),
-        0 0 80px rgba(201, 169, 97, 0.15);
-    animation: slideDown 0.4s ease;
-}
-
-@keyframes slideDown {
-    from {
-        transform: translateY(-50px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-.modal-content h3 {
-    color: #c9a961;
-    margin-bottom: 20px;
-    font-size: 1.4rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-align: center;
-}
-
-.modal-content select {
-    width: 100%;
-    padding: 12px 15px;
-    border: 2px solid rgba(201, 169, 97, 0.3);
-    border-radius: 8px;
-    font-size: 1rem;
-    font-family: 'Noto Serif JP', serif;
-    background: rgba(255, 255, 255, 0.9);
-    color: #2c2416;
-    margin-bottom: 20px;
-    transition: all 0.3s ease;
-}
-
-.modal-content select:focus {
-    outline: none;
-    border-color: #c9a961;
-    box-shadow: 0 0 0 3px rgba(201, 169, 97, 0.1);
-    background: #fff;
-}
-
-.modal-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-}
-
-/* ===========================
-   レスポンシブ対応（タブレット）
-   =========================== */
+/* レスポンシブ */
 @media (max-width: 768px) {
-    header h1 {
-        font-size: 1.4rem;
-    }
-
-    .app-header {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .tabs {
-        flex-direction: column;
-    }
-
-    .calendar-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-    }
-
     table th,
     table td {
-        padding: 10px 8px;
+        padding: 14px 10px;
         font-size: 0.85rem;
-    }
-
-    .addable-cell {
-        font-size: 1.8rem;
-        min-width: 55px;
-        min-height: 55px;
-        padding: 8px;
-    }
-
-    .modal-content {
-        width: 95%;
-        padding: 25px;
-        margin: 20% auto;
+        min-width: 60px;
     }
 }
 
-/* ===========================
-   レスポンシブ対応（スマホ）
-   =========================== */
 @media (max-width: 480px) {
-    header h1 {
-        font-size: 1.2rem;
-        letter-spacing: 0.1em;
-    }
-
-    .auth-container {
-        margin: 40px 15px;
-        padding: 25px;
-    }
-
-    .calendar-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 6px;
-    }
-
-    .calendar-day {
-        padding: 10px;
-    }
-
     table th,
     table td {
-        padding: 8px 6px;
+        padding: 12px 8px;
         font-size: 0.8rem;
+        min-width: 55px;
     }
-
-    .addable-cell {
-        font-size: 1.6rem;
-        min-width: 50px;
-        min-height: 50px;
-        padding: 6px;
-    }
-
-    .btn {
-        padding: 10px 18px;
-        font-size: 0.9rem;
-    }
-
-    .modal-content {
-        width: 95%;
-        padding: 20px;
-        margin: 30% auto;
-    }
-
-    .stat-card {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* ===========================
-   シフト表のウィンドウ枠固定
-   （Excel風の固定ヘッダー＆固定左列）
-   =========================== */
-
-/* シフト表にスクロール設定を追加 */
-.shift-table {
-    overflow-y: auto;
-    max-height: 80vh;
-}
-
-/* ヘッダー行を上に固定（日付） */
-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    background: linear-gradient(to bottom, rgba(250, 248, 245, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
-    box-shadow: 0 2px 4px rgba(201, 169, 97, 0.1);
-}
-
-/* スタッフ名の列を左端に固定 */
-table td:first-child,
-table th:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 2;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 248, 245, 0.95) 100%);
-    box-shadow: 2px 0 4px rgba(201, 169, 97, 0.1);
-}
-
-/* 左上のセル（「スタッフ名」というヘッダー）は最優先 */
-table thead th:first-child {
-    z-index: 4;
 }
