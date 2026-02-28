@@ -1,6 +1,14 @@
 // API エンドポイント
 const API_BASE_URL = 'https://shift-sub-backend.onrender.com/api';
 
+// バックエンドをウォームアップ
+async function warmupBackend() {
+    try {
+        await fetch(`${API_BASE_URL.replace('/api', '')}`);
+    } catch (e) {}
+}
+warmupBackend();
+
 // UUID生成関数
 function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
